@@ -11,7 +11,11 @@
 #include <stdio.h>        // perror
 #include <fcntl.h>
 #include <sys/wait.h>
+#include <sys/mman.h>     // mmap
+#include <semaphore.h>    // sem_t
 #define STACK_SIZE (1024 * 1024)
+
+sem_t *sem;
 
 int hostname_id = 100000;
 
@@ -21,6 +25,11 @@ void die(const char *msg){
 }
 
 int child_main(void *arg) {
+
+    printf("Filho esperando rede...\n");
+    sem_wait(sem); // Espera o pai liberar o semáforo
+
+    printf("Rede pronta! Continuando...\n");
 
     /* mounting the new container filesystem */
 
@@ -77,6 +86,22 @@ int child_main(void *arg) {
 }
 
 int main() {
+
+    sem = mmap(NULL, sizeof(sem_t),
+               PROT_READ | PROT_WRITE,
+               MAP_SHARED | MAP_ANONYMOUS,
+               -1, 0);
+
+    if (sem == MAP_FAILED) {
+        perror("mmap");
+        exit(1);
+    }
+
+    if (sem_init(sem, 1, 0) == -1) {
+        perror("sem_init");
+        exit(1);
+    }
+
     char *stack = malloc(STACK_SIZE);
     if (!stack) {
         perror("malloc");
@@ -85,13 +110,28 @@ int main() {
 
     int flags = CLONE_NEWUTS | CLONE_NEWPID | CLONE_NEWNS | CLONE_NEWNET | SIGCHLD;
     pid_t pid = clone(child_main, stack + STACK_SIZE, flags, NULL);
-    printf("%d AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n", pid);
     if (pid == -1) {
         perror("clone");
         exit(1);
     }
 
+    char sh_command[30];
+    if (sprintf(sh_command, "sh ip_container.sh %d", pid) < 0){
+        perror("sprintf");
+        exit(1);
+    }
+
+    system(sh_command);
+
+    // Após configurar, sinaliza o semáforo para liberar o filho
+    sem_post(sem);
+
     waitpid(pid, NULL, 0);
+
+    // Finaliza o semáforo e a memória mapeada
+    sem_destroy(sem);
+    munmap(sem, sizeof(sem_t));
+
     return 0;
 }
 
