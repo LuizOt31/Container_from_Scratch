@@ -18,6 +18,7 @@ sudo iptables -A FORWARD -i wlp2s0 -o Estivador -m state --state RELATED,ESTABLI
 
 # Enabling DHCP for our containers
 # Every container that is created will receive an ip thanks to this protocol
+
 mkdir -p /etc/dnsmasq.d
 cat > /etc/dnsmasq.d/estivador.conf <<EOF
 interface=Estivador
@@ -26,3 +27,4 @@ dhcp-range=192.168.100.100,192.168.100.200,12h
 EOF
 
 systemctl restart dnsmasq.service
+
