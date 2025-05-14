@@ -4,6 +4,7 @@
 
 # Create bridge called "Estivador" and give it an IP
 ovs-vsctl add-br Estivador
+sleep 2 # Aparentemente a atribuição de ip chega antes de ser criado a br, ai nao atribui de fato ipv4
 ip addr add 192.168.100.1/24 dev Estivador
 ip link set Estivador up
 
@@ -17,12 +18,13 @@ sudo iptables -A FORWARD -i wlp2s0 -o Estivador -m state --state RELATED,ESTABLI
 
 # Enabling DHCP for our containers
 # Every container that is created will receive an ip thanks to this protocol
+
+mkdir -p /etc/dnsmasq.d
 cat > /etc/dnsmasq.d/estivador.conf <<EOF
 interface=Estivador
 bind-interfaces
 dhcp-range=192.168.100.100,192.168.100.200,12h
 EOF
 
-systemctl restart dnsmasq
-systemctl enable dnsmasq
+systemctl restart dnsmasq.service
 

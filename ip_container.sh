@@ -3,9 +3,9 @@
 # In main.c, it is passed the containers real pid in root_namespace 
 pid_container=$1
 
-# Is pid alright?
+# Is pid parameter alright?
 if [ -z "$pid_container" ]; then
-    echo "Erro: PID do container não fornecido!"
+    echo "Error: Container's PID not found!"
     exit 1
 fi
 
