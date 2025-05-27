@@ -108,7 +108,7 @@ int main() {
         exit(1);
     }
 
-    int flags = CLONE_NEWUTS | CLONE_NEWPID | CLONE_NEWNS | CLONE_NEWNET | SIGCHLD;
+    int flags = CLONE_NEWUTS | CLONE_NEWPID | CLONE_NEWNS | CLONE_NEWNET | CLONE_NEWCGROUP | SIGCHLD;
     pid_t pid = clone(child_main, stack + STACK_SIZE, flags, NULL);
     if (pid == -1) {
         perror("clone");
